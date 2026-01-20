@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rust ORS Proxy — Migrate to ORS Today</title>
-    <meta name="description" content="The definitive solution for migrating to the Open Responses Specification. Build the future, today.">
+    <meta name="description"
+        content="The definitive solution for migrating to the Open Responses Specification. Build the future, today.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -44,7 +46,7 @@
             left: 0;
             right: 0;
             height: 100vh;
-            background: 
+            background:
                 radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 107, 53, 0.15), transparent),
                 radial-gradient(ellipse 60% 40% at 80% 60%, rgba(247, 147, 30, 0.08), transparent);
             z-index: 0;
@@ -126,8 +128,15 @@
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
         }
 
         h1 {
@@ -199,6 +208,7 @@
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -344,9 +354,17 @@
             color: var(--text-secondary);
         }
 
-        .code-block .comment { color: #6a737d; }
-        .code-block .command { color: var(--rust); }
-        .code-block .string { color: #9ecbff; }
+        .code-block .comment {
+            color: #6a737d;
+        }
+
+        .code-block .command {
+            color: var(--rust);
+        }
+
+        .code-block .string {
+            color: #9ecbff;
+        }
 
         /* CTA Section */
         .cta-section {
@@ -420,9 +438,10 @@
         }
     </style>
 </head>
+
 <body>
     <div class="hero-bg"></div>
-    
+
     <div class="container">
         <nav>
             <div class="logo">
@@ -431,7 +450,7 @@
             </div>
             <div class="nav-links">
                 <a href="https://www.openresponses.org/" target="_blank">ORS Spec</a>
-                <a href="https://github.com/origo/rust-ors-proxy">GitHub</a>
+                <a href="https://github.com/mrorigo/rust-ors-proxy">GitHub</a>
                 <a href="#features">Features</a>
             </div>
         </nav>
@@ -446,11 +465,11 @@
                 <span class="gradient-text">Migrate to ORS Today.</span>
             </h1>
             <p class="hero-subtitle">
-                The definitive Rust proxy that bridges your modern ORS code to legacy Chat Completions providers. 
+                The definitive Rust proxy that bridges your modern ORS code to legacy Chat Completions providers.
                 Build against the future, ship with confidence.
             </p>
             <div class="cta-group">
-                <a href="https://github.com/origo/rust-ors-proxy" class="btn btn-primary">
+                <a href="https://github.com/mrorigo/rust-ors-proxy" class="btn btn-primary">
                     Get Started →
                 </a>
                 <a href="https://www.openresponses.org/" class="btn btn-secondary" target="_blank">
@@ -467,7 +486,7 @@
                     <div class="card-icon">💀</div>
                     <h3 class="card-title">Chat Completions (Legacy)</h3>
                     <p class="card-description">
-                        Loose JSON, fragile parsing, string-heavy blobs. Client-managed context windows. 
+                        Loose JSON, fragile parsing, string-heavy blobs. Client-managed context windows.
                         Tool calls buried in chaotic delta chunks. Technical debt waiting to happen.
                     </p>
                 </div>
@@ -475,7 +494,7 @@
                     <div class="card-icon">✨</div>
                     <h3 class="card-title">Open Responses (ORS)</h3>
                     <p class="card-description">
-                        Strict, typed semantic events. Server-managed state. First-class multimodal and tools. 
+                        Strict, typed semantic events. Server-managed state. First-class multimodal and tools.
                         The clean, unified standard the industry is moving towards.
                     </p>
                 </div>
@@ -490,7 +509,7 @@
                     <div class="feature-icon">🚀</div>
                     <h3 class="feature-title">Blazing Fast</h3>
                     <p class="feature-description">
-                        Built on Rust, Tokio, and Axum. Minimal latency, maximum throughput. 
+                        Built on Rust, Tokio, and Axum. Minimal latency, maximum throughput.
                         Your proxy won't be the bottleneck.
                     </p>
                 </div>
@@ -498,7 +517,7 @@
                     <div class="feature-icon">🔄</div>
                     <h3 class="feature-title">Stateful Context Replay</h3>
                     <p class="feature-description">
-                        Built-in SQLite persistence. The proxy manages conversation history 
+                        Built-in SQLite persistence. The proxy manages conversation history
                         so your clients can stay stateless.
                     </p>
                 </div>
@@ -506,7 +525,7 @@
                     <div class="feature-icon">🛠️</div>
                     <h3 class="feature-title">Full Tool Support</h3>
                     <p class="feature-description">
-                        Legacy tool_calls automatically transcoded to strict ORS function call events. 
+                        Legacy tool_calls automatically transcoded to strict ORS function call events.
                         No more parsing nightmares.
                     </p>
                 </div>
@@ -514,7 +533,7 @@
                     <div class="feature-icon">🖼️</div>
                     <h3 class="feature-title">Multimodal Ready</h3>
                     <p class="feature-description">
-                        Seamlessly maps ORS image inputs to upstream legacy formats. 
+                        Seamlessly maps ORS image inputs to upstream legacy formats.
                         Vision models just work.
                     </p>
                 </div>
@@ -522,7 +541,7 @@
                     <div class="feature-icon">🛡️</div>
                     <h3 class="feature-title">Robust Transcoding</h3>
                     <p class="feature-description">
-                        Smart SSE buffering handles network fragmentation and upstream quirks. 
+                        Smart SSE buffering handles network fragmentation and upstream quirks.
                         Perfect stream, every time.
                     </p>
                 </div>
@@ -530,7 +549,7 @@
                     <div class="feature-icon">⚡</div>
                     <h3 class="feature-title">Drop-in Ready</h3>
                     <p class="feature-description">
-                        Point at any OpenAI-compatible endpoint: OpenAI, Ollama, vLLM, Together, Groq. 
+                        Point at any OpenAI-compatible endpoint: OpenAI, Ollama, vLLM, Together, Groq.
                         One config change.
                     </p>
                 </div>
@@ -542,7 +561,7 @@
             <h2 class="section-title">Three commands. That's it.</h2>
             <div class="code-block">
                 <pre><span class="comment"># Clone and run</span>
-<span class="command">git clone</span> https://github.com/origo/rust-ors-proxy
+<span class="command">git clone</span> https://github.com/mrorigo/rust-ors-proxy
 <span class="command">cd</span> rust-ors-proxy
 <span class="command">cargo run</span>
 
@@ -557,10 +576,10 @@
                 <span class="gradient-text">Neither should you.</span>
             </h2>
             <p class="cta-subtitle">
-                Get ahead of the curve. Start building against the Open Responses Specification today, 
+                Get ahead of the curve. Start building against the Open Responses Specification today,
                 with full compatibility with your existing providers.
             </p>
-            <a href="https://github.com/origo/rust-ors-proxy" class="btn btn-primary">
+            <a href="https://github.com/mrorigo/rust-ors-proxy" class="btn btn-primary">
                 Start Migrating Now →
             </a>
         </section>
@@ -569,10 +588,11 @@
     <footer>
         <div class="container">
             <p>
-                Built with 🦀 by the community. 
+                Built with 🦀 by the community.
                 <a href="https://www.openresponses.org/" target="_blank">Learn more about ORS</a>.
             </p>
         </div>
     </footer>
 </body>
+
 </html>
