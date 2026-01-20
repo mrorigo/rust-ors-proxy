@@ -118,7 +118,6 @@ async fn create_response(
     }
 
     // 4. Execute request
-    // TODO: Error handling for upstream connection failure
     let res = match req_builder.send().await {
         Ok(res) => res,
         Err(e) => {
