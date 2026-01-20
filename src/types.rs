@@ -93,7 +93,7 @@ pub struct LegacyDelta {
 // ORS OUTBOUND EVENTS
 // ================================================================================================
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
 #[serde(tag = "event", content = "data")]
 pub enum OrsEvent {
     #[serde(rename = "response.created")]
