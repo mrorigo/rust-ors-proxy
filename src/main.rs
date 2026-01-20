@@ -215,6 +215,7 @@ fn event_name(event: &types::OrsEvent) -> &'static str {
         types::OrsEvent::Created { .. } => "response.created",
         types::OrsEvent::ItemAdded { .. } => "response.output_item.added",
         types::OrsEvent::TextDelta { .. } => "response.output_text.delta",
+        types::OrsEvent::FunctionCallArgumentsDelta { .. } => "response.function_call_arguments.delta",
         types::OrsEvent::ItemDone { .. } => "response.output_item.done",
     }
 }

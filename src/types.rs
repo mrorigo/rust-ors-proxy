@@ -62,12 +62,15 @@ pub struct LegacyChatRequest {
     pub stream: bool,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LegacyMessage {
     pub role: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tool_calls: Option<Vec<Value>>,
+    pub tool_calls: Option<Vec<Value>>, // Upstream tool format (OpenAI compatible)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_call_id: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -102,12 +105,17 @@ pub enum OrsEvent {
     #[serde(rename = "response.output_item.added")]
     ItemAdded {
         item_id: String,
-        #[serde(rename = "type")]
-        item_type: String,
+        item: Value,
     },
 
     #[serde(rename = "response.output_text.delta")]
     TextDelta {
+        item_id: String,
+        delta: String,
+    },
+
+    #[serde(rename = "response.function_call_arguments.delta")]
+    FunctionCallArgumentsDelta {
         item_id: String,
         delta: String,
     },

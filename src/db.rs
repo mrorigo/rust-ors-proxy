@@ -133,7 +133,8 @@ impl Db {
 
         for event in output_events {
             match event {
-                OrsEvent::ItemAdded { item_id, item_type } => {
+                OrsEvent::ItemAdded { item_id, item } => {
+                    let item_type = item.get("type").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
                     items_map.insert(item_id.clone(), ItemState { item_type, content: String::new() });
                     item_order.push(item_id);
                 }
