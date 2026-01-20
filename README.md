@@ -2,7 +2,7 @@
 
 > **Get Ahead of the Curve: Adopt the Open Responses Standard Today.**
 
-Why wait for providers to catch up? This high-performance Rust proxy allows you to build against the **Open Responses Specification (ORS)** *right now*, bridging your modern ORS client code to legacy "Chat Completions" providers like OpenAI, Ollama, and vLLM.
+Why wait for providers to catch up? This high-performance Rust proxy allows you to build against the [**Open Responses Specification (ORS)**](https://www.openresponses.org/) *right now*, bridging your modern ORS client code to legacy "Chat Completions" providers like OpenAI, Ollama, and vLLM.
 
 ## Why ORS?
 
