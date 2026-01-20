@@ -10,13 +10,15 @@ pub struct OrsRequest {
     pub model: String,
     pub input: Vec<OrsInputItem>,
     #[serde(default)]
+    #[allow(dead_code)]
     pub store: bool,
     pub previous_response_id: Option<String>,
     #[serde(default)]
+    #[allow(dead_code)]
     pub stream: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum OrsInputItem {
     Message {
@@ -36,7 +38,7 @@ pub enum OrsInputItem {
     },
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum OrsRole {
     User,
@@ -44,7 +46,7 @@ pub enum OrsRole {
     Developer,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum OrsContentPart {
     InputText { text: String },
@@ -89,6 +91,7 @@ pub struct LegacyDelta {
     pub content: Option<String>,
     pub tool_calls: Option<Vec<Value>>,
     #[serde(flatten)]
+    #[allow(dead_code)]
     pub extra: Value,
 }
 

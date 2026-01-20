@@ -66,7 +66,7 @@ pub fn transform_ors_to_legacy(input: Vec<OrsInputItem>) -> Vec<LegacyMessage> {
                     tool_call_id: None,
                 });
             }
-            OrsInputItem::FunctionCall { id, call_id, name, arguments } => {
+            OrsInputItem::FunctionCall { id: _, call_id, name, arguments } => {
                 // ORS FunctionCall maps to a Legacy assistant message with tool_calls
                 messages.push(LegacyMessage {
                     role: "assistant".to_string(),
@@ -86,7 +86,7 @@ pub fn transform_ors_to_legacy(input: Vec<OrsInputItem>) -> Vec<LegacyMessage> {
                     tool_call_id: None,
                 });
             }
-            OrsInputItem::FunctionCallOutput { id, call_id, output } => {
+            OrsInputItem::FunctionCallOutput { id: _, call_id, output } => {
                 // ORS FunctionCallOutput maps to a Legacy tool role message
                 messages.push(LegacyMessage {
                     role: "tool".to_string(),
@@ -146,5 +146,56 @@ mod tests {
 
         let legacy = transform_ors_to_legacy(input);
         assert_eq!(legacy[0].content, Some(serde_json::Value::String("Part 1 Part 2".to_string())));
+    }
+
+    #[test]
+    fn test_transform_image_multimodal() {
+        let input = vec![OrsInputItem::Message {
+            role: OrsRole::User,
+            content: vec![
+                OrsContentPart::InputText { text: "Look at this:".to_string() },
+                OrsContentPart::InputImage { image_url: serde_json::json!({"url": "http://img.png"}) },
+            ],
+        }];
+
+        let legacy = transform_ors_to_legacy(input);
+        let content = legacy[0].content.as_ref().unwrap();
+        assert!(content.is_array());
+        let array = content.as_array().unwrap();
+        assert_eq!(array.len(), 2);
+        assert_eq!(array[0]["type"], "text");
+        assert_eq!(array[1]["type"], "image_url");
+        assert_eq!(array[1]["image_url"]["url"], "http://img.png");
+    }
+
+    #[test]
+    fn test_transform_tool_calls() {
+        let input = vec![
+            OrsInputItem::FunctionCall {
+                id: "item_1".to_string(),
+                call_id: "call_abc".to_string(),
+                name: "get_weather".to_string(),
+                arguments: serde_json::json!({"city": "SF"}),
+            },
+            OrsInputItem::FunctionCallOutput {
+                id: "item_2".to_string(),
+                call_id: "call_abc".to_string(),
+                output: "Sunny".to_string(),
+            }
+        ];
+
+        let legacy = transform_ors_to_legacy(input);
+        assert_eq!(legacy.len(), 2);
+        
+        // Tool Call (Assistant)
+        assert_eq!(legacy[0].role, "assistant");
+        let tc = legacy[0].tool_calls.as_ref().unwrap();
+        assert_eq!(tc[0]["id"], "call_abc");
+        assert_eq!(tc[0]["function"]["name"], "get_weather");
+
+        // Tool Output (Tool)
+        assert_eq!(legacy[1].role, "tool");
+        assert_eq!(legacy[1].tool_call_id.as_deref(), Some("call_abc"));
+        assert_eq!(legacy[1].content.as_ref().unwrap().as_str(), Some("Sunny"));
     }
 }

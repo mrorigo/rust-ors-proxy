@@ -6,7 +6,7 @@ use axum::{
 };
 use futures::stream::Stream;
 use reqwest::Client;
-use std::{convert::Infallible, net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc};
 use tokio_stream::StreamExt;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
@@ -17,7 +17,7 @@ mod upstream;
 mod db;
 mod sse_codec;
 
-use types::{LegacyChatRequest, LegacyChunk}; // Note: Changed to LegacyChatRequest in types.rs? Check types.rs.
+// use types::{LegacyChatRequest, LegacyChunk}; // Removed unused imports
 // Wait, I named it LegacyChatRequest in types.rs. 
 // Ah, allow me to double check types.rs content via `view_file` to be sure before writing.
 // However, I can't view file in middle of tool call. 

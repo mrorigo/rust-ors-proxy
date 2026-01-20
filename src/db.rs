@@ -172,3 +172,54 @@ impl Db {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{OrsContentPart, OrsInputItem, OrsRole};
+
+    #[tokio::test]
+    async fn test_db_init_and_save() {
+        // Use in-memory SQLite for testing
+        let db = Db::new("sqlite::memory:").await.unwrap();
+        
+        // 1. Initial Load (empty)
+        let history = db.load_context("conv_1").await.unwrap();
+        assert!(history.is_empty());
+
+        // 2. Save Interaction
+        let input = vec![OrsInputItem::Message {
+            role: OrsRole::User,
+            content: vec![OrsContentPart::InputText { text: "Hello".to_string() }],
+        }];
+        let output_events = vec![
+            OrsEvent::Created { id: "res_1".to_string() },
+            OrsEvent::ItemAdded { 
+                item_id: "msg_1".to_string(), 
+                item: serde_json::json!({"type": "message", "role": "assistant"})
+            },
+            OrsEvent::TextDelta { item_id: "msg_1".to_string(), delta: "Hi".to_string() },
+            OrsEvent::ItemDone { item_id: "msg_1".to_string(), status: "completed".to_string() },
+        ];
+
+        db.save_interaction("conv_1", input, output_events).await.unwrap();
+
+        // 3. Load Context Again
+        let history2 = db.load_context("conv_1").await.unwrap();
+        assert_eq!(history2.len(), 2);
+        
+        if let OrsInputItem::Message { role, content } = &history2[0] {
+             assert_eq!(*role, OrsRole::User);
+             if let OrsContentPart::InputText { text } = &content[0] {
+                 assert_eq!(text, "Hello");
+             }
+        }
+        
+        if let OrsInputItem::Message { role, content } = &history2[1] {
+             assert_eq!(*role, OrsRole::Assistant);
+             if let OrsContentPart::InputText { text } = &content[0] {
+                 assert_eq!(text, "Hi");
+             }
+        }
+    }
+}
