@@ -2,6 +2,12 @@
 name = "rust-ors-proxy"
 version = "0.1.0"
 edition = "2021"
+description = "A high-performance Rust proxy for the Open Responses Specification (ORS), bridging modern clients to legacy Chat Completion providers."
+license = "MIT"
+repository = "https://github.com/mrorigo/rust-ors-proxy"
+readme = "README.md"
+keywords = ["ors", "proxy", "openai", "agent", "spec"]
+categories = ["web-programming::http-server", "api-bindings"]
 
 [dependencies]
 tokio = { version = "1.0", features = ["full"] }
