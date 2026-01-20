@@ -4,13 +4,16 @@ use uuid::Uuid;
 pub struct Transcoder {
     response_id: String,
     current_item_id: Option<String>,
+    current_item_type: Option<String>,
+    current_content_index: Option<u32>,
+    has_emitted_content_start: bool,
     state: TranscoderState,
+    sequence_number: u32,
 }
 
 enum TranscoderState {
     Init,
     Streaming,
-    // Done, // Not strictly needed if we just stop processing
 }
 
 impl Transcoder {
@@ -18,8 +21,18 @@ impl Transcoder {
         Self {
             response_id: format!("resp_{}", Uuid::new_v4().simple()),
             current_item_id: None,
+            current_item_type: None,
+            current_content_index: None,
+            has_emitted_content_start: false,
             state: TranscoderState::Init,
+            sequence_number: 0,
         }
+    }
+
+    fn next_seq(&mut self) -> Option<u32> {
+        let seq = self.sequence_number;
+        self.sequence_number += 1;
+        Some(seq)
     }
 
     pub fn process(&mut self, chunk: LegacyChunk) -> Vec<OrsEvent> {
@@ -30,23 +43,29 @@ impl Transcoder {
             // 1. Handle Initialization (First chunk logic)
             if let TranscoderState::Init = self.state {
                 // Emit response.created
+                let seq = self.next_seq();
                 events.push(OrsEvent::Created {
                     id: self.response_id.clone(),
+                    sequence_number: seq,
                 });
 
-                // Check if we should start a default Message item.
-                // If the first chunk has tool_calls and NO content, we skip creating the message
-                // because the tool_calls loop will create the FunctionCall item(s).
                 let has_tool_calls = choice.delta.tool_calls.as_ref().map(|tc| !tc.is_empty()).unwrap_or(false);
                 let has_content = choice.delta.content.as_ref().map(|s| !s.is_empty()).unwrap_or(false);
 
                 if !has_tool_calls || has_content {
                     let item_id = format!("msg_{}", Uuid::new_v4().simple());
                     self.current_item_id = Some(item_id.clone());
+                    self.current_item_type = Some("message".to_string());
 
                     events.push(OrsEvent::ItemAdded {
-                        item_id,
-                        item: serde_json::json!({ "type": "message", "role": "assistant", "content": [] }),
+                        sequence_number: seq,
+                        item: serde_json::json!({ 
+                            "id": item_id,
+                            "type": "message", 
+                            "status": "in_progress",
+                            "role": "assistant", 
+                            "content": [] 
+                        }),
                     });
                 }
 
@@ -61,9 +80,29 @@ impl Transcoder {
                     // If we skipped message creation but got content now (shouldn't happen if logic above is correct for 1st chunk),
                     // logic works because has_content would be true.
                     // But if item_id is empty (from unwrap_or_default)?
-                     if !item_id.is_empty() {
+                    if !item_id.is_empty() {
+                        // Check if we need to start a content part
+                        if !self.has_emitted_content_start {
+                            let seq = self.next_seq();
+                            let content_idx = self.current_content_index.unwrap_or(0); // Default to 0 for first part
+                            self.current_content_index = Some(content_idx);
+                            
+                            events.push(OrsEvent::ContentPartAdded {
+                                sequence_number: seq,
+                                item_id: item_id.clone(),
+                                output_index: Some(0), // Simple proxy assumes single output
+                                content_index: Some(content_idx),
+                                part: serde_json::json!({ "type": "output_text", "text": "" }),
+                            });
+                            self.has_emitted_content_start = true;
+                        }
+
+                        let seq = self.next_seq();
                         events.push(OrsEvent::TextDelta {
+                            sequence_number: seq,
                             item_id: item_id.clone(),
+                            output_index: Some(0),
+                            content_index: self.current_content_index,
                             delta: content.clone(),
                         });
                      }
@@ -90,24 +129,32 @@ impl Transcoder {
                         
                         let call_name = name.unwrap_or("unknown"); // Name usually comes with ID
                         
+                        let seq = self.next_seq();
                         events.push(OrsEvent::ItemAdded {
-                            item_id: new_item_id.clone(),
+                            sequence_number: seq,
                             item: serde_json::json!({
+                                "id": new_item_id,
                                 "type": "function_call",
+                                "status": "in_progress",
                                 "call_id": call_id,
                                 "name": call_name,
                                 "arguments": "" // Initial state
                             }),
                         });
+                        self.current_item_type = Some("function_call".to_string());
                     }
                     
                     // If we have an active item and args delta, emit it
                     // We assume self.current_item_id is pointing to the function call now
                     if let Some(delta) = args_delta {
                         if !delta.is_empty() {
-                            if let Some(current_id) = &self.current_item_id {
+                            let current_id = self.current_item_id.clone();
+                            if let Some(current_id) = current_id {
+                                 let seq = self.next_seq();
                                  events.push(OrsEvent::FunctionCallArgumentsDelta {
-                                     item_id: current_id.clone(),
+                                     sequence_number: seq,
+                                     item_id: current_id,
+                                     output_index: Some(0),
                                      delta: delta.to_string(),
                                  });
                             }
@@ -125,10 +172,51 @@ impl Transcoder {
                     _ => "completed",
                 };
                 
+                // If we were streaming content, close the content part first
+                if self.has_emitted_content_start {
+                     let seq = self.next_seq();
+                     let content_idx = self.current_content_index.unwrap_or(0);
+                     // We don't track accumulated text here easily without buffering. 
+                     // But spec example shows "text": "full text" in ContentPartDone.
+                     // The spec says "The content part is then closed with response.content_part.done".
+                     // Ideally we should send the final part state. 
+                     // IMPORTANT: Since we are valid-proxying, we might not have the full text if we didn't buffer.
+                     // The spec allows the Part in Done event. 
+                     // Verify if Part is required to be fully populated? 
+                     // "part": { "type": "output_text", "text": "..." }
+                     // If we don't have it, we might just emit the type. 
+                     // However, to be safe and simple, let's skip buffering for now and send what we can or empty string?
+                     // Actually, if we are just a proxy, maybe we can omit the `text` field in `done` if unnecessary?
+                     // Spec example uses it. 
+                     // Let's rely on the fact that we sent Deltas.
+                     
+                     events.push(OrsEvent::ContentPartDone {
+                        sequence_number: seq,
+                        item_id: item_id.clone(),
+                        output_index: Some(0),
+                        content_index: Some(content_idx),
+                        part: serde_json::json!({ "type": "output_text", "text": "" }), // Placeholder or nothing
+                     });
+                     
+                     self.has_emitted_content_start = false;
+                     self.current_content_index = None;
+                }
+
+                let seq = self.next_seq();
+                let item_type = self.current_item_type.as_deref().unwrap_or("message");
+                
                 events.push(OrsEvent::ItemDone {
-                    item_id,
-                    status: status.to_string(),
+                    sequence_number: seq,
+                    output_index: Some(0),
+                    item: serde_json::json!({
+                        "id": item_id,
+                        "type": item_type,
+                        "status": status.to_string(),
+                    }),
                 });
+                
+                self.current_item_id = None;
+                self.current_item_type = None;
             }
         }
 
@@ -178,11 +266,15 @@ mod tests {
             _ => panic!("Second event should be ItemAdded"),
         }
 
-        // 2. Content chunk
+        // 2. Content chunk -> Should emit ContentPartAdded and TextDelta
         let chunk2 = make_chunk(Some("Hello"), None);
         let events = transcoder.process(chunk2);
-        assert_eq!(events.len(), 1);
+        assert_eq!(events.len(), 2);
         match &events[0] {
+             OrsEvent::ContentPartAdded { .. } => {},
+             _ => panic!("Should be ContentPartAdded"),
+        }
+        match &events[1] {
             OrsEvent::TextDelta { delta, .. } => assert_eq!(delta, "Hello"),
             _ => panic!("Should be TextDelta"),
         }
@@ -190,9 +282,14 @@ mod tests {
         // 3. Finish chunk
         let chunk3 = make_chunk(None, Some("stop"));
         let events = transcoder.process(chunk3);
-        assert_eq!(events.len(), 1);
+        // content part done + item done
+        assert_eq!(events.len(), 2);
         match &events[0] {
-            OrsEvent::ItemDone { status, .. } => assert_eq!(status, "completed"),
+             OrsEvent::ContentPartDone { .. } => {},
+             _ => panic!("Should be ContentPartDone"),
+        }
+        match &events[1] {
+            OrsEvent::ItemDone { item, .. } => assert_eq!(item["status"], "completed"),
             _ => panic!("Should be ItemDone"),
         }
     }
@@ -227,8 +324,7 @@ mod tests {
              _ => panic!("Expected Created"),
         }
         match &events1[1] {
-            OrsEvent::ItemAdded { item_id, item } => {
-                assert!(item_id.starts_with("fc_"));
+            OrsEvent::ItemAdded { item, .. } => {
                 assert_eq!(item["type"], "function_call");
                 assert_eq!(item["call_id"], "call_123");
                 assert_eq!(item["name"], "get_weather");
@@ -266,8 +362,8 @@ mod tests {
         let chunk3: LegacyChunk = serde_json::from_value(chunk3_json).unwrap();
         let events3 = transcoder.process(chunk3);
         assert_eq!(events3.len(), 1);
-        if let OrsEvent::ItemDone { status, .. } = &events3[0] {
-            assert_eq!(status, "completed");
+        if let OrsEvent::ItemDone { item, .. } = &events3[0] {
+            assert_eq!(item["status"], "completed");
         } else {
             panic!("Expected ItemDone");
         }

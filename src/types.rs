@@ -100,32 +100,74 @@ pub struct LegacyDelta {
 // ================================================================================================
 
 #[derive(Serialize, Debug, Clone)]
-#[serde(tag = "event", content = "data")]
+#[serde(tag = "type")]
 pub enum OrsEvent {
     #[serde(rename = "response.created")]
-    Created { id: String },
+    Created { 
+        id: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        sequence_number: Option<u32>,
+    },
 
     #[serde(rename = "response.output_item.added")]
     ItemAdded {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        sequence_number: Option<u32>,
+        item: Value, // Must contain id, type, status
+    },
+
+    #[serde(rename = "response.content_part.added")]
+    ContentPartAdded {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        sequence_number: Option<u32>,
         item_id: String,
-        item: Value,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        output_index: Option<u32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        content_index: Option<u32>,
+        part: Value,
     },
 
     #[serde(rename = "response.output_text.delta")]
     TextDelta {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        sequence_number: Option<u32>,
         item_id: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        output_index: Option<u32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        content_index: Option<u32>,
         delta: String,
     },
 
     #[serde(rename = "response.function_call_arguments.delta")]
     FunctionCallArgumentsDelta {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        sequence_number: Option<u32>,
         item_id: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        output_index: Option<u32>,
         delta: String,
+    },
+
+    #[serde(rename = "response.content_part.done")]
+    ContentPartDone {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        sequence_number: Option<u32>,
+        item_id: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        output_index: Option<u32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        content_index: Option<u32>,
+        part: Value,
     },
 
     #[serde(rename = "response.output_item.done")]
     ItemDone {
-        item_id: String,
-        status: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        sequence_number: Option<u32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        output_index: Option<u32>,
+        item: Value, // Echo the full item or at least id, type, status
     },
 }

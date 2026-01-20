@@ -213,8 +213,10 @@ fn event_name(event: &types::OrsEvent) -> &'static str {
     match event {
         types::OrsEvent::Created { .. } => "response.created",
         types::OrsEvent::ItemAdded { .. } => "response.output_item.added",
+        types::OrsEvent::ContentPartAdded { .. } => "response.content_part.added",
         types::OrsEvent::TextDelta { .. } => "response.output_text.delta",
         types::OrsEvent::FunctionCallArgumentsDelta { .. } => "response.function_call_arguments.delta",
+        types::OrsEvent::ContentPartDone { .. } => "response.content_part.done",
         types::OrsEvent::ItemDone { .. } => "response.output_item.done",
     }
 }

@@ -133,12 +133,18 @@ impl Db {
 
         for event in output_events {
             match event {
-                OrsEvent::ItemAdded { item_id, item } => {
+                OrsEvent::ItemAdded { item, .. } => {
+                    let item_id = item.get("id").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
                     let item_type = item.get("type").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
                     items_map.insert(item_id.clone(), ItemState { item_type, content: String::new() });
                     item_order.push(item_id);
                 }
-                OrsEvent::TextDelta { item_id, delta } => {
+                OrsEvent::TextDelta { item_id, delta, .. } => {
+                     if let Some(state) = items_map.get_mut(&item_id) {
+                         state.content.push_str(&delta);
+                     }
+                }
+                OrsEvent::FunctionCallArgumentsDelta { item_id, delta, .. } => {
                      if let Some(state) = items_map.get_mut(&item_id) {
                          state.content.push_str(&delta);
                      }
@@ -193,13 +199,23 @@ mod tests {
             content: vec![OrsContentPart::InputText { text: "Hello".to_string() }],
         }];
         let output_events = vec![
-            OrsEvent::Created { id: "res_1".to_string() },
+            OrsEvent::Created { id: "res_1".to_string(), sequence_number: Some(0) },
             OrsEvent::ItemAdded { 
-                item_id: "msg_1".to_string(), 
-                item: serde_json::json!({"type": "message", "role": "assistant"})
+                sequence_number: Some(1),
+                item: serde_json::json!({"id": "msg_1", "type": "message", "role": "assistant"})
             },
-            OrsEvent::TextDelta { item_id: "msg_1".to_string(), delta: "Hi".to_string() },
-            OrsEvent::ItemDone { item_id: "msg_1".to_string(), status: "completed".to_string() },
+            OrsEvent::TextDelta { 
+                sequence_number: Some(2), 
+                item_id: "msg_1".to_string(), 
+                output_index: Some(0),
+                content_index: Some(0),
+                delta: "Hi".to_string() 
+            },
+            OrsEvent::ItemDone { 
+                sequence_number: Some(3),
+                output_index: Some(0),
+                item: serde_json::json!({"id": "msg_1", "type": "message", "status": "completed"})
+            },
         ];
 
         db.save_interaction("conv_1", input, output_events).await.unwrap();
