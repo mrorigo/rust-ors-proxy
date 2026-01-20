@@ -66,7 +66,7 @@ pub struct LegacyChatRequest {
 pub struct LegacyMessage {
     pub role: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub content: Option<String>,
+    pub content: Option<Value>, // Can be String or Vec<ContentPart>
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_calls: Option<Vec<Value>>, // Upstream tool format (OpenAI compatible)
     #[serde(skip_serializing_if = "Option::is_none")]

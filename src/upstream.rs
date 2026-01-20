@@ -12,19 +12,56 @@ pub fn transform_ors_to_legacy(input: Vec<OrsInputItem>) -> Vec<LegacyMessage> {
                     OrsRole::Developer => "system",
                 };
 
-                let mut text_content = String::new();
+                let mut content_parts: Vec<serde_json::Value> = Vec::new();
+                let mut has_image = false;
+
                 for part in content {
                     match part {
-                        OrsContentPart::InputText { text } => text_content.push_str(&text),
-                        OrsContentPart::InputImage { .. } => {
-                            // Warn or ignore for now?
+                        OrsContentPart::InputText { text } => {
+                             if !text.is_empty() {
+                                 content_parts.push(serde_json::json!({
+                                     "type": "text",
+                                     "text": text
+                                 }));
+                             }
+                        },
+                        OrsContentPart::InputImage { image_url } => {
+                            has_image = true;
+                            // ORS image_url is already a Value (object or string) matching OpenAI format mostly.
+                            // If it's just a string URI, we might need to wrap it.
+                            // But types.rs says image_url: Value.
+                            // Let's assume it matches OpenAI {"url": "..."} or is compatible.
+                            // OpenAI expects: {"type": "image_url", "image_url": {"url": "..."}}
+                            
+                            content_parts.push(serde_json::json!({
+                                "type": "image_url",
+                                "image_url": image_url
+                            }));
                         }
                     }
                 }
+                
+                let legacy_content = if has_image {
+                    Some(serde_json::Value::Array(content_parts))
+                } else {
+                    // Optimized: simple string if text only (and if only one part? Or strict join?)
+                    // OpenAI supports string content. 
+                    // Let's join text parts for simple message.
+                    let full_text: String = content_parts.iter()
+                        .filter_map(|p| p.get("text").and_then(|t| t.as_str()))
+                        .collect::<Vec<_>>()
+                        .join("");
+                        
+                    if !full_text.is_empty() {
+                        Some(serde_json::Value::String(full_text))
+                    } else {
+                        None
+                    }
+                };
 
                 messages.push(LegacyMessage {
                     role: role_str.to_string(),
-                    content: Some(text_content),
+                    content: legacy_content,
                     tool_calls: None,
                     tool_call_id: None,
                 });
@@ -53,7 +90,7 @@ pub fn transform_ors_to_legacy(input: Vec<OrsInputItem>) -> Vec<LegacyMessage> {
                 // ORS FunctionCallOutput maps to a Legacy tool role message
                 messages.push(LegacyMessage {
                     role: "tool".to_string(),
-                    content: Some(output),
+                    content: Some(serde_json::Value::String(output)),
                     tool_calls: None,
                     tool_call_id: Some(call_id),
                 });
@@ -80,7 +117,7 @@ mod tests {
         let legacy = transform_ors_to_legacy(input);
         assert_eq!(legacy.len(), 1);
         assert_eq!(legacy[0].role, "user");
-        assert_eq!(legacy[0].content.as_deref(), Some("Hello world"));
+        assert_eq!(legacy[0].content, Some(serde_json::Value::String("Hello world".to_string())));
     }
 
     #[test]
@@ -108,6 +145,6 @@ mod tests {
         }];
 
         let legacy = transform_ors_to_legacy(input);
-        assert_eq!(legacy[0].content.as_deref(), Some("Part 1 Part 2"));
+        assert_eq!(legacy[0].content, Some(serde_json::Value::String("Part 1 Part 2".to_string())));
     }
 }
